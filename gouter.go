@@ -1,7 +1,6 @@
 package gouter
 
 import (
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -21,6 +20,10 @@ type route struct {
 	handler http.Handler
 	methods []string
 }
+type RegexpHandler struct {
+	routes []*route
+}
+type Params map[interface{}]string
 
 // methodMatcher matches the request against HTTP methods.
 
@@ -31,11 +34,7 @@ func (r *route) Method(methods ...string) {
 	}
 }
 
-type RegexpHandler struct {
-	routes []*route
-}
-
-func (h *RegexpHandler) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request, []string)) *route {
+func (h *RegexpHandler) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request, *Params)) *route {
 	r := regexp.MustCompile("{(\\w+):([^{}]+(?:\\{\\d*,?\\d*\\})?)+}")
 	pattern = r.ReplaceAllString(pattern, "(?P<$1>:$2)")
 	reg := regexp.MustCompile("^" + pattern + "$")
@@ -55,10 +54,17 @@ func (h *RegexpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, []string), reg *regexp.Regexp) http.HandlerFunc {
+func makeHandler(fn func(http.ResponseWriter, *http.Request, *Params), reg *regexp.Regexp) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := reg.FindStringSubmatch(r.URL.Path)
-		log.Print(r.URL.Path)
-		fn(w, r, m)
+		n := reg.SubexpNames()
+		params := Params{}
+		for i := range m {
+			params[i] = m[i]
+			if n[i] != "" {
+				params[n[i]] = m[i]
+			}
+		}
+		fn(w, r, &params)
 	}
 }
