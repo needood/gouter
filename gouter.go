@@ -2,7 +2,6 @@ package gouter
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -88,7 +87,7 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, *Params), reg *rege
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := reg.FindStringSubmatch(r.URL.Path)
 		n := reg.SubexpNames()
-		params, err := InitParam(m, n)
+		params, _ := InitParam(m, n)
 		fn(w, r, params)
 	}
 }
