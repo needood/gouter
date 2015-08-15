@@ -27,13 +27,16 @@ type Params struct {
 	params map[interface{}]string
 }
 
-func (p *Params) Init(m, n []string) {
+func InitParam(m, n []string) *Params {
+	p := new(Params)
+	p.params = make(map[interface{}]string)
 	for i := range m {
 		p.params[i] = m[i]
 		if n[i] != "" {
 			p.params[n[i]] = m[i]
 		}
 	}
+	return p
 }
 func (p *Params) Get(index interface{}) string {
 	switch index.(type) {
@@ -78,8 +81,7 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, *Params), reg *rege
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := reg.FindStringSubmatch(r.URL.Path)
 		n := reg.SubexpNames()
-		params := new(Params)
-		params.Init(m, n)
+		params := InitParam(m, n)
 		fn(w, r, params)
 	}
 }

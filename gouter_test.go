@@ -14,10 +14,10 @@ var (
 	addr = flag.Bool("addr", false, "find open address and print to final-port.txt")
 )
 
-func LoginHandler(rw http.ResponseWriter, req *http.Request, params []string) {
+func LoginHandler(rw http.ResponseWriter, req *http.Request, params *Params) {
 	fmt.Fprintf(rw, "<h1>%s</h1>", "Get")
 }
-func LoginPostHandler(rw http.ResponseWriter, req *http.Request, params []string) {
+func LoginPostHandler(rw http.ResponseWriter, req *http.Request, params *Params) {
 	fmt.Fprintf(rw, "<h1>%s</h1>", "Post")
 }
 func Test_lalala(*testing.T) {
