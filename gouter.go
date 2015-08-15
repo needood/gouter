@@ -92,7 +92,7 @@ func (h *RegexpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func makeHandler(fn func(http.ResponseWriter, *http.Request, *Params), reg *regexp.Regexp) http.HandlerFunc {
 	numSubexp := reg.NumSubexp()
 
-	if numSubexp != 1 {
+	if numSubexp != 0 {
 		return func(w http.ResponseWriter, r *http.Request) {
 			m := reg.FindStringSubmatch(r.URL.Path)
 			n := reg.SubexpNames()
