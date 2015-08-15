@@ -1,6 +1,8 @@
 package gouter
 
 import (
+	"errors"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -24,21 +26,23 @@ type RegexpHandler struct {
 	routes []*route
 }
 type Params struct {
-	paramsInt    map[int]string
+	paramsInt    []string
 	paramsString map[string]string
 }
 
-func InitParam(m, n []string) *Params {
+func InitParam(m, n []string) (*Params, error) {
+	if len(m) != len(n) {
+		return nil, errors.New("params's length is not equal")
+	}
 	p := new(Params)
-	p.paramsInt = make(map[int]string)
+	p.paramsInt = m
 	p.paramsString = make(map[string]string)
-	for i := range m {
-		p.paramsInt[i] = m[i]
+	for i := range n {
 		if n[i] != "" {
 			p.paramsString[n[i]] = m[i]
 		}
 	}
-	return p
+	return p, nil
 }
 func (p *Params) Get(index interface{}) string {
 	switch index.(type) {
@@ -84,7 +88,7 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, *Params), reg *rege
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := reg.FindStringSubmatch(r.URL.Path)
 		n := reg.SubexpNames()
-		params := InitParam(m, n)
+		params, err := InitParam(m, n)
 		fn(w, r, params)
 	}
 }
