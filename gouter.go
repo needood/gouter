@@ -91,7 +91,10 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, *Params), reg *rege
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := reg.FindStringSubmatch(r.URL.Path)
 		n := reg.SubexpNames()
-		params, _ := InitParam(m, n)
+		var params *Params = nil
+		if len(m) != 1 {
+			params, _ = InitParam(m, n)
+		}
 		fn(w, r, params)
 	}
 }
