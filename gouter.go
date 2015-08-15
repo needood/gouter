@@ -34,7 +34,7 @@ func (r *route) Method(methods ...string) {
 	}
 }
 
-func (h *RegexpHandler) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request, *Params)) *route {
+func (h *RegexpHandler) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request, Params)) *route {
 	r := regexp.MustCompile("{(\\w+):([^{}]+(?:\\{\\d*,?\\d*\\})?)+}")
 	pattern = r.ReplaceAllString(pattern, "(?P<$1>:$2)")
 	reg := regexp.MustCompile("^" + pattern + "$")
@@ -54,7 +54,7 @@ func (h *RegexpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, *Params), reg *regexp.Regexp) http.HandlerFunc {
+func makeHandler(fn func(http.ResponseWriter, *http.Request, Params), reg *regexp.Regexp) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := reg.FindStringSubmatch(r.URL.Path)
 		n := reg.SubexpNames()
@@ -65,6 +65,6 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, *Params), reg *rege
 				params[n[i]] = m[i]
 			}
 		}
-		fn(w, r, &params)
+		fn(w, r, params)
 	}
 }
