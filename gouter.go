@@ -74,9 +74,9 @@ func (h *RegexpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, *Params), reg, matchReg *regexp.Regexp) http.HandlerFunc {
+func makeHandler(fn func(http.ResponseWriter, *http.Request, *Params), reg *regexp.Regexp) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		m := matchReg.FindStringSubmatch(r.URL.Path)
+		m := reg.FindStringSubmatch(r.URL.Path)
 		n := reg.SubexpNames()
 		params := new(Params)
 		params.Init(m, n)
