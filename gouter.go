@@ -30,10 +30,14 @@ type Params struct {
 }
 
 func InitParam(m, n []string) (*Params, error) {
-	if len(m) != len(n) {
-		return nil, errors.New("params's length is not equal")
-	}
 	p := new(Params)
+	err := p.Set(m, n)
+	return p, err
+}
+func (p *Params) Set(m, n []string) error {
+	if len(m) != len(n) {
+		return errors.New("params's length is not equal")
+	}
 	p.paramsInt = m
 	p.paramsString = make(map[string]string)
 	for i := range n {
@@ -41,7 +45,7 @@ func InitParam(m, n []string) (*Params, error) {
 			p.paramsString[n[i]] = m[i]
 		}
 	}
-	return p, nil
+	return nil
 }
 func (p *Params) Get(index interface{}) string {
 	switch index.(type) {
