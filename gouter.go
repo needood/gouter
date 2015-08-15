@@ -68,8 +68,10 @@ func (r *route) Method(methods ...string) {
 }
 
 func (h *RegexpHandler) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request, *Params)) *route {
-	r := regexp.MustCompile("{(\\w+):([^{}]+(?:\\{\\d*,?\\d*\\})?)+}")
+	r := regexp.MustCompile("{([a-zA-Z]+\\d*):([^{}]*(?:\\\\\\{)?(?:\\\\\\{)?(?:p\\{\\w+\\})(?:\\{\\w*,?\\d*\\})?)+}")
 	pattern = r.ReplaceAllString(pattern, "(?P<$1>$2)")
+	r2 := regexp.MustCompile("{([a-zA-Z]+\\d*)}")
+	pattern = r2.ReplaceAllString(pattern, "(?P<$1>[^/]+)")
 	reg := regexp.MustCompile("^" + pattern + "$")
 	subRoute := &route{reg, http.HandlerFunc(makeHandler(handler, reg)), []string{"GET", "POST"}}
 	h.routes = append(h.routes, subRoute)
