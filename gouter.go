@@ -17,7 +17,6 @@ func matchInArray(arr []string, value string) bool {
 
 type route struct {
 	pattern *regexp.Regexp
-	match   *regexp.Regexp
 	handler http.Handler
 	methods []string
 }
@@ -57,18 +56,16 @@ func (r *route) Method(methods ...string) {
 
 func (h *RegexpHandler) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request, *Params)) *route {
 	r := regexp.MustCompile("{(\\w+):([^{}]+(?:\\{\\d*,?\\d*\\})?)+}")
-	match := r.ReplaceAllString(pattern, "($2)")
-	matchReg := regexp.MustCompile("^" + match + "$")
-	pattern = r.ReplaceAllString(pattern, "(?P<$1>:$2)")
+	pattern = r.ReplaceAllString(pattern, "(?P<$1>$2)")
 	reg := regexp.MustCompile("^" + pattern + "$")
-	subRoute := &route{reg, matchReg, http.HandlerFunc(makeHandler(handler, reg)), []string{"GET", "POST"}}
+	subRoute := &route{reg, http.HandlerFunc(makeHandler(handler, reg)), []string{"GET", "POST"}}
 	h.routes = append(h.routes, subRoute)
 	return subRoute
 }
 
 func (h *RegexpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, route := range h.routes {
-		if route.match.MatchString(r.URL.Path) && matchInArray(route.methods, r.Method) {
+		if route.pattern.MatchString(r.URL.Path) && matchInArray(route.methods, r.Method) {
 			route.handler.ServeHTTP(w, r)
 			return
 		}
@@ -77,9 +74,9 @@ func (h *RegexpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, *Params), reg *regexp.Regexp) http.HandlerFunc {
+func makeHandler(fn func(http.ResponseWriter, *http.Request, *Params), reg, matchReg *regexp.Regexp) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		m := reg.FindStringSubmatch(r.URL.Path)
+		m := matchReg.FindStringSubmatch(r.URL.Path)
 		n := reg.SubexpNames()
 		params := new(Params)
 		params.Init(m, n)
