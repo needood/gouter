@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"regexp"
 	"testing"
 )
 
@@ -15,7 +16,14 @@ var (
 )
 
 func LoginHandler(rw http.ResponseWriter, req *http.Request, params *Params) {
-	fmt.Fprintf(rw, "<h1>%s</h1>", "Get")
+
+	re := regexp.MustCompile("(?P<first>[a-zA-Z]+) (?P<last>[a-zA-Z]+)")
+	fmt.Println(re.MatchString("Alan Turing"))
+	fmt.Printf("%q\n", re.SubexpNames())
+	reversed := fmt.Sprintf("${%s} ${%s}", re.SubexpNames()[2], re.SubexpNames()[1])
+	fmt.Println(reversed)
+
+	fmt.Fprintf(rw, "<h1>%s</h1>%s", "Get", re.ReplaceAllString("Alan Turing", reversed))
 }
 func LoginPostHandler(rw http.ResponseWriter, req *http.Request, params *Params) {
 	fmt.Fprintf(rw, "<h1>%s</h1>", "Post")

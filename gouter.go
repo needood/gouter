@@ -24,16 +24,18 @@ type RegexpHandler struct {
 	routes []*route
 }
 type Params struct {
-	params map[interface{}]string
+	paramsInt    map[int]string
+	paramsString map[string]string
 }
 
 func InitParam(m, n []string) *Params {
 	p := new(Params)
-	p.params = make(map[interface{}]string)
+	p.paramsInt = make(map[int]string)
+	p.paramsString = make(map[string]string)
 	for i := range m {
-		p.params[i] = m[i]
+		p.paramsInt[i] = m[i]
 		if n[i] != "" {
-			p.params[n[i]] = m[i]
+			p.paramsString[n[i]] = m[i]
 		}
 	}
 	return p
@@ -41,8 +43,9 @@ func InitParam(m, n []string) *Params {
 func (p *Params) Get(index interface{}) string {
 	switch index.(type) {
 	case string:
+		return p.paramsString[index.(string)]
 	case int:
-		return p.params[index]
+		return p.paramsInt[index.(int)]
 	default:
 	}
 	return ""
