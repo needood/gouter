@@ -36,6 +36,8 @@ type RegexpHandler struct {
 }
 
 func (h *RegexpHandler) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request, []string)) *route {
+	r := regexp.MustCompile("{(\\w+):([^{}]+(?:\\{\\d*,?\\d*\\})?)+}")
+	pattern = r.ReplaceAllString(pattern, "(?P<$1>:$2)")
 	reg := regexp.MustCompile("^" + pattern + "$")
 	subRoute := &route{reg, http.HandlerFunc(makeHandler(handler, reg)), []string{"GET", "POST"}}
 	h.routes = append(h.routes, subRoute)
