@@ -16,46 +16,84 @@ func matchInArray(arr []string, value string) bool {
 	return false
 }
 
+type HandlerFunc func(http.ResponseWriter, *http.Request, *Params)
 type route struct {
 	pattern *regexp.Regexp
 	handler http.Handler
 	methods []string
 }
+
+var GouterHandler = &RegexpHandler{}
+
+func initRout(reg *regexp.Regexp, handler http.HandlerFunc) (*route, error) {
+	return &route{reg, http.HandlerFunc(handler), []string{"GET", "POST"}}, nil
+}
+
 type RegexpHandler struct {
 	routes []*route
 }
-type Params struct {
-	paramsInt    []string
-	paramsString map[string]string
+
+func (h *RegexpHandler) appendRoute(reg *regexp.Regexp, handler HandlerFunc) *route {
+	handlerFunc := makeHandler(handler, reg, &h.routes)
+	subRoute, _ := initRout(reg, handlerFunc)
+	h.routes = append(h.routes, subRoute)
+	return subRoute
 }
 
-func InitParam(m, n []string) (*Params, error) {
-	p := new(Params)
-	err := p.Set(m, n)
-	return p, err
+type Params struct {
+	paramsInt    []string
+	paramsString map[string]int
+	flags        map[string]int
+	routes       *[]*route
 }
-func (p *Params) Set(m, n []string) error {
+
+func InitParam() *Params {
+	params := new(Params)
+	params.flags = make(map[string]int)
+	params.paramsString = make(map[string]int)
+	return params
+}
+func (p *Params) SetParam(m, n []string) error {
 	if len(m) != len(n) {
 		return errors.New("params's length is not equal")
 	}
 	p.paramsInt = m
-	p.paramsString = make(map[string]string)
+	p.paramsString = make(map[string]int)
 	for i := range n {
 		if n[i] != "" {
-			p.paramsString[n[i]] = m[i]
+			p.paramsString[n[i]] = i
 		}
 	}
 	return nil
 }
-func (p *Params) Get(index interface{}) string {
-	switch index.(type) {
-	case string:
-		return p.paramsString[index.(string)]
-	case int:
-		return p.paramsInt[index.(int)]
-	default:
+func (p *Params) SetByIndex(index int, value string) {
+	p.paramsInt[index] = value
+}
+func (p *Params) Set(key, value string) {
+	p.paramsInt[p.paramsString[key]] = value
+}
+func (p *Params) Get(key string) string {
+	return p.paramsInt[p.paramsString[key]]
+}
+func (p *Params) GetByIndex(index int) string {
+	return p.paramsInt[index]
+}
+func (p *Params) SetFlag(key string, value int) {
+	p.flags[key] = value
+}
+func (p *Params) GetFlag(key string) int {
+	return p.flags[key]
+}
+func (p *Params) Next(w http.ResponseWriter, r *http.Request) {
+	routes := *p.routes
+	for _, route := range routes[p.GetFlag("next"):] {
+		if route.pattern.MatchString(r.URL.Path) && matchInArray(route.methods, r.Method) {
+			route.handler.ServeHTTP(w, r)
+			return
+		}
 	}
-	return ""
+	// no pattern matched; send 404 response
+	http.NotFound(w, r)
 }
 
 // methodMatcher matches the request against HTTP methods.
@@ -73,8 +111,7 @@ func (h *RegexpHandler) HandleFunc(pattern string, handler func(http.ResponseWri
 	r2 := regexp.MustCompile("{([a-zA-Z]+\\d*)}")
 	pattern = r2.ReplaceAllString(pattern, "(?P<$1>[^/]+)")
 	reg := regexp.MustCompile("^" + pattern + "$")
-	subRoute := &route{reg, http.HandlerFunc(makeHandler(handler, reg)), []string{"GET", "POST"}}
-	h.routes = append(h.routes, subRoute)
+	subRoute := h.appendRoute(reg, handler)
 	return subRoute
 }
 
@@ -89,19 +126,16 @@ func (h *RegexpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, *Params), reg *regexp.Regexp) http.HandlerFunc {
-	numSubexp := reg.NumSubexp()
+func makeHandler(fn HandlerFunc, reg *regexp.Regexp, routes *[]*route) http.HandlerFunc {
 
-	if numSubexp != 0 {
-		return func(w http.ResponseWriter, r *http.Request) {
-			m := reg.FindStringSubmatch(r.URL.Path)
-			n := reg.SubexpNames()
-			params, _ := InitParam(m, n)
-			fn(w, r, params)
-		}
-	} else {
-		return func(w http.ResponseWriter, r *http.Request) {
-			fn(w, r, nil)
-		}
+	params := InitParam()
+	params.SetFlag("next", len(*routes)+1)
+	params.routes = routes
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		m := reg.FindStringSubmatch(r.URL.Path)
+		n := reg.SubexpNames()
+		params.SetParam(m, n)
+		fn(w, r, params)
 	}
 }
